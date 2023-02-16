@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}EPGStation Archives{% endblock title %}
+
+{% block content %}
+<div class="row">
+  {% for video in object_list %}
+  <div class="col">
+    <div class="card">
+      {% with video.thumbnails.first as thumbnail %}
+      {% if thumbnail %}
+      <img class="card-img-top" src="{{ thumbnail.presigned_get_object_url }}" alt="{{ video.title }}" />
+      {% endif %}
+      {% endwith %}
+      <div class="card-body">
+        <h5 class="card-title">{{ video }}</h5>
+        <a class="stretched-link" href="{% url 'videos-file' pk=video.pk %}" target="_blank"
+          rel="noopener noreferrer">→</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock content %}
+
+{% block css %}
+{% endblock css %}
+
+{% block javascript %}
+{% endblock javascript %}

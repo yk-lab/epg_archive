@@ -1,0 +1,79 @@
+services:
+  app:
+    container_name: epgstation_backup_app
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+    restart: on-failure
+    env_file: ./.env
+    environment:
+      DATABASE_URL: "postgres://epgstation_backup:password@db/epgstation_backup"
+      STANDBY: "tcp://db:5432"
+    command: python3 manage.py runserver_plus 0.0.0.0:8600 --nothreading
+    volumes:
+      - ./app:/app:cached
+    depends_on:
+      - db
+    ports:
+      - '8600:8600'
+
+  worker:
+    container_name: epgstation_backup_worker
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+    restart: on-failure
+    env_file: ./.env
+    environment:
+      DATABASE_URL: "postgres://epgstation_backup:password@db/epgstation_backup"
+      STANDBY: "tcp://app:8600"
+    command: python3 manage.py rqworker --with-scheduler
+    volumes:
+      - ./app:/app:cached
+    depends_on:
+      - db
+
+  redis:
+    container_name: epgstation_backup_redis
+    image: "redis:latest"
+    restart: on-failure
+    ports:
+      - "6379"
+    volumes:
+      - "redis_data:/data"
+
+  db:
+    container_name: epgstation_backup_db
+    image: postgres:14
+    restart: on-failure
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: "epgstation_backup"
+      POSTGRES_USER: "epgstation_backup"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    ports:
+      - "5432"
+
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
+    volumes:
+      - ./pgbackups:/backups
+    links:
+      - db
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=epgstation_backup
+      - POSTGRES_USER=epgstation_backup
+      - POSTGRES_PASSWORD=password
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+      - HEALTHCHECK_PORT=8080
+
+volumes:
+  pgdata:
+  redis_data:
