@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM python:3.11
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -8,14 +9,19 @@ ENV PYTHONUNBUFFERED 1
 ENV ENTRYKIT_VERSION 0.4.0
 ENV DOCKERIZE_VERSION v0.6.1
 
-RUN apt-get update && \
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+
+RUN rm -f /etc/apt/apt.conf.d/docker-clean
+
+RUN \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
     git \
-    wget \
-    && apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    wget
 
 RUN wget https://github.com/progrium/entrykit/releases/download/v${ENTRYKIT_VERSION}/entrykit_${ENTRYKIT_VERSION}_Linux_x86_64.tgz \
     && tar -xvzf entrykit_${ENTRYKIT_VERSION}_Linux_x86_64.tgz \
